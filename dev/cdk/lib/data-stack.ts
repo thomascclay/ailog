@@ -3,13 +3,16 @@ import {CfnOutput, RemovalPolicy} from 'aws-cdk-lib';
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb"
 import {AttributeType, BillingMode} from "aws-cdk-lib/aws-dynamodb"
 import {Construct} from 'constructs';
-import {DYNAMO_TABLE_NAME} from "./constants";
+import {DYNAMO_TABLE_NAME, OUTPUT_KEYS} from "./constants";
+import {TStack, TStackProps} from "./TStack";
 
-export class DataStack extends cdk.Stack {
-  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+export class DataStack extends TStack {
+
+  public dynamoTable: dynamodb.Table
+  constructor(scope: Construct, id: string, props: TStackProps) {
     super(scope, id, props);
 
-    const ddb = new dynamodb.Table(this, 'AiLogTable', {
+    this.dynamoTable = new dynamodb.Table(this, 'AiLogTable', {
       tableName: DYNAMO_TABLE_NAME,
       billingMode: BillingMode.PAY_PER_REQUEST,
       removalPolicy: RemovalPolicy.RETAIN,
@@ -23,11 +26,9 @@ export class DataStack extends cdk.Stack {
       }
     });
 
-    new CfnOutput(this, 'AiLogDynamoTableOutput', {
-      value: ddb.tableArn,
-      exportName: 'AiLogDynamoTable'
+    this.output({
+      [OUTPUT_KEYS.DDB_ARN]: this.dynamoTable.tableArn
     })
-
 
   }
 }

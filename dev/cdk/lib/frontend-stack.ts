@@ -7,25 +7,24 @@ import * as route53 from 'aws-cdk-lib/aws-route53';
 import * as targets from 'aws-cdk-lib/aws-route53-targets';
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as acm from 'aws-cdk-lib/aws-certificatemanager';
-import {CfnOutput, Duration} from "aws-cdk-lib";
+import {Duration} from "aws-cdk-lib";
 import {CertificateValidation} from "aws-cdk-lib/aws-certificatemanager";
+import { SITE_NAME} from "./constants";
+import {TStack, TStackProps} from "./TStack";
 
-type FrontendStackProps = cdk.StackProps & {
-  domainName: string
-  siteSubDomain: string
-}
 
-export class FrontendStack extends cdk.Stack {
-  constructor(scope: cdk.App, id: string, props: FrontendStackProps) {
+export class FrontendStack extends TStack {
+  constructor(scope: cdk.App, id: string, props: TStackProps) {
     super(scope, id, props);
-    const zone = route53.HostedZone.fromLookup(this, 'Zone', {domainName: props.domainName});
-    const siteDomain = props.siteSubDomain + '.' + props.domainName;
+    const zone = route53.HostedZone.fromLookup(this, 'Zone', {domainName: SITE_NAME[1]});
+    const siteDomain = SITE_NAME.join('.');
     const cloudfrontOAI = new cloudfront.OriginAccessIdentity(this, 'cloudfront-OAI', {
       comment: `OAI for ${id}`
     });
 
     // Create an S3 bucket to store the static assets
     const siteBucket = new s3.Bucket(this, 'AilogUiSiteBucket', {
+      bucketName: SITE_NAME.join('.'),
       websiteIndexDocument: 'index.html',
       publicReadAccess: true,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
@@ -37,14 +36,12 @@ export class FrontendStack extends cdk.Stack {
       resources: [siteBucket.arnForObjects('*')],
       principals: [new iam.CanonicalUserPrincipal(cloudfrontOAI.cloudFrontOriginAccessIdentityS3CanonicalUserId)]
     }));
-    new CfnOutput(this, 'Bucket', {value: siteBucket.bucketName});
 
     // TLS certificate
     const certificate = new acm.Certificate(this, 'AiLogSiteCertificate', {
       domainName: siteDomain,
       validation: CertificateValidation.fromDns(zone),
     });
-    new CfnOutput(this, 'Certificate', {value: certificate.certificateArn});
 
     // CloudFront distribution
     const distribution = new cloudfront.Distribution(this, 'AiLogSiteDistribution', {
@@ -67,8 +64,6 @@ export class FrontendStack extends cdk.Stack {
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
       }
     })
-
-    new CfnOutput(this, 'DistributionId', {value: distribution.distributionId});
 
     // Route53 alias record for the CloudFront distribution
     new route53.ARecord(this, 'AilogUiRecord', {
