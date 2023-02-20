@@ -1,0 +1,8 @@
+{
+  "name": "ailog-common",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "author": "Thomas Clay",
+  "license": "MIT",
+  "private": true
+}

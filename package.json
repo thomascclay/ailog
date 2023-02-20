@@ -1,0 +1,13 @@
+{
+  "name": "ailog",
+  "version": "1.0.0",
+  "main": "null",
+  "repository": "git@github.com:thomascclay/ailog.git",
+  "author": "Thomas Clay <thomascclay@gmail.com>",
+  "license": "MIT",
+  "private": true,
+  "workspaces": ["ailog-*", "dev/*"],
+  "scripts": {
+    "deploy": "yarn workspace cdk deploy"
+  }
+}

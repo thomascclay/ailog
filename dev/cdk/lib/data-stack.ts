@@ -1,34 +1,29 @@
 import * as cdk from 'aws-cdk-lib';
-import {CfnOutput, RemovalPolicy} from 'aws-cdk-lib';
+import { RemovalPolicy} from 'aws-cdk-lib';
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb"
 import {AttributeType, BillingMode} from "aws-cdk-lib/aws-dynamodb"
 import {Construct} from 'constructs';
-import {DYNAMO_TABLE_NAME, OUTPUT_KEYS} from "./constants";
-import {TStack, TStackProps} from "./TStack";
+import {DYNAMO_TABLE} from "ailog-common";
+import {AiLogStack} from "./AiLogStack";
 
-export class DataStack extends TStack {
+export class DataStack extends AiLogStack {
 
   public dynamoTable: dynamodb.Table
-  constructor(scope: Construct, id: string, props: TStackProps) {
-    super(scope, id, props);
+  constructor(scope: Construct) {
+    super(scope, 'DataStack');
 
     this.dynamoTable = new dynamodb.Table(this, 'AiLogTable', {
-      tableName: DYNAMO_TABLE_NAME,
+      tableName: DYNAMO_TABLE.NAME,
       billingMode: BillingMode.PAY_PER_REQUEST,
       removalPolicy: RemovalPolicy.RETAIN,
       partitionKey: {
-        name: "hashKey",
+        name: DYNAMO_TABLE.HASH_KEY,
         type: AttributeType.STRING
       },
       sortKey: {
-        name: "sortKey",
+        name: DYNAMO_TABLE.SORT_KEY,
         type: AttributeType.STRING
       }
     });
-
-    this.output({
-      [OUTPUT_KEYS.DDB_ARN]: this.dynamoTable.tableArn
-    })
-
   }
 }

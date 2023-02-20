@@ -1,48 +1,46 @@
 import {Construct} from 'constructs';
-import {DYNAMO_TABLE_NAME, OUTPUT_KEYS, SITE_NAME} from "./constants";
+import {API_URL, SERVICE_FN_NAME, SITE_NAME} from "ailog-common";
 import {ARecord, HostedZone, RecordTarget} from "aws-cdk-lib/aws-route53";
-import {TStack, TStackProps} from "./TStack";
-import {Distribution, SecurityPolicyProtocol} from "aws-cdk-lib/aws-cloudfront";
-import {CloudFrontTarget} from "aws-cdk-lib/aws-route53-targets";
+import {AiLogStack} from "./AiLogStack";
+import {ApiGateway} from "aws-cdk-lib/aws-route53-targets";
 import {Certificate, CertificateValidation} from "aws-cdk-lib/aws-certificatemanager";
-import * as origins from "aws-cdk-lib/aws-cloudfront-origins"
+import { LambdaRestApi} from "aws-cdk-lib/aws-apigateway";
+import {Function} from "aws-cdk-lib/aws-lambda";
 
-export class ApiStack extends TStack {
-  region: string;
-  account: string;
-  tableArn: string;
-  public apiUrl: string;
 
-  constructor(scope: Construct, id: string, props: TStackProps) {
-    super(scope, id, props);
-    this.region = props.env.region
-    this.account = props?.env?.account ?? process.env.DEFAULT_CDK_ACCOUNT!
-    this.tableArn = `arn:aws:dynamodb:${props?.env?.region ?? process.env.AWS_REGION}:${this.account}:table/${DYNAMO_TABLE_NAME}`
-    this.apiUrl = `api.${SITE_NAME[1]}`
+export class ApiStack extends AiLogStack {
 
+  constructor(scope: Construct) {
+    super(scope, 'ApiStack');
+
+    const proxyFunction = Function.fromFunctionName(this, 'ServiceFn', SERVICE_FN_NAME)
     const zone = HostedZone.fromLookup(this, 'ApiHostedZone', {
       domainName: SITE_NAME[1]
     })
 
     const certificate = new Certificate(this, 'AiLogApiCertificate', {
-      domainName: this.apiUrl,
+      domainName: API_URL,
       validation: CertificateValidation.fromDns(zone),
     });
 
-    // CloudFront distribution
-    const distribution = new Distribution(this, 'AiLogSiteDistribution', {
-      certificate: certificate,
-      domainNames: [this.apiUrl],
-      minimumProtocolVersion: SecurityPolicyProtocol.TLS_V1_2_2021,
-      defaultBehavior: {
-        origin: new origins.HttpOrigin(this.import(OUTPUT_KEYS.API_LAMBDA_URL))
-      }
+    const restApi = new LambdaRestApi(this, 'AiLogApiGateway', {
+      proxy: true,
+      handler: proxyFunction,
+      restApiName: 'AiLog',
+      domainName: {
+        domainName: API_URL,
+        certificate,
+      },
+      defaultCorsPreflightOptions: {
+        allowOrigins: [SITE_NAME.join('.')],
+        allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      },
     })
 
     new ARecord(this, 'ApiARecord', {
       zone,
-      recordName: this.apiUrl,
-      target: RecordTarget.fromAlias(new CloudFrontTarget(distribution))
+      recordName: API_URL,
+      target: RecordTarget.fromAlias(new ApiGateway(restApi))
     })
 
   }

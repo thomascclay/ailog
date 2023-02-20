@@ -1,0 +1,49 @@
+Arguments: 
+  /home/thomas/.config/nvm/versions/node/v19.6.0/bin/node /home/thomas/.config/nvm/versions/node/v19.6.0/bin/yarn add @aws-sdk/aws-dynamodb
+
+PATH: 
+  /home/thomas/.config/nvm/versions/node/v19.6.0/bin:/usr/local/sbin:/usr/local/bin:/usr/local/games:/usr/sbin:/usr/bin:/usr/games:/sbin:/bin:~/scripts
+
+Yarn version: 
+  1.22.19
+
+Node version: 
+  19.6.0
+
+Platform: 
+  linux x64
+
+Trace: 
+  Error: https://registry.yarnpkg.com/@aws-sdk%2faws-dynamodb: Not found
+      at params.callback [as _callback] (/home/thomas/.config/nvm/versions/node/v19.6.0/lib/node_modules/yarn/lib/cli.js:66145:18)
+      at self.callback (/home/thomas/.config/nvm/versions/node/v19.6.0/lib/node_modules/yarn/lib/cli.js:140890:22)
+      at Request.emit (node:events:512:28)
+      at Request.<anonymous> (/home/thomas/.config/nvm/versions/node/v19.6.0/lib/node_modules/yarn/lib/cli.js:141862:10)
+      at Request.emit (node:events:512:28)
+      at IncomingMessage.<anonymous> (/home/thomas/.config/nvm/versions/node/v19.6.0/lib/node_modules/yarn/lib/cli.js:141784:12)
+      at Object.onceWrapper (node:events:626:28)
+      at IncomingMessage.emit (node:events:524:35)
+      at endReadableNT (node:internal/streams/readable:1359:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:82:21)
+
+npm manifest: 
+  {
+    "name": "ailog-api",
+    "version": "1.0.0",
+    "main": "index.ts",
+    "author": "Thomas Clay",
+    "license": "private",
+    "private": true,
+    "dependencies": {
+      "aws-lambda": "^1.0.7"
+    },
+    "devDependencies": {
+      "@types/node": "^18.14.0"
+    }
+  }
+
+yarn manifest: 
+  No manifest
+
+Lockfile: 
+  No lockfile

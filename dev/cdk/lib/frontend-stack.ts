@@ -9,17 +9,17 @@ import * as iam from "aws-cdk-lib/aws-iam";
 import * as acm from 'aws-cdk-lib/aws-certificatemanager';
 import {Duration} from "aws-cdk-lib";
 import {CertificateValidation} from "aws-cdk-lib/aws-certificatemanager";
-import { SITE_NAME} from "./constants";
-import {TStack, TStackProps} from "./TStack";
+import { SITE_NAME} from "ailog-common";
+import {AiLogStack} from "./AiLogStack";
 
 
-export class FrontendStack extends TStack {
-  constructor(scope: cdk.App, id: string, props: TStackProps) {
-    super(scope, id, props);
+export class FrontendStack extends AiLogStack {
+  constructor(scope: cdk.App) {
+    super(scope, 'FrontendStack');
     const zone = route53.HostedZone.fromLookup(this, 'Zone', {domainName: SITE_NAME[1]});
     const siteDomain = SITE_NAME.join('.');
     const cloudfrontOAI = new cloudfront.OriginAccessIdentity(this, 'cloudfront-OAI', {
-      comment: `OAI for ${id}`
+      comment: `OAI for ${this.stackId}`
     });
 
     // Create an S3 bucket to store the static assets
@@ -79,5 +79,6 @@ export class FrontendStack extends TStack {
       distribution,
       distributionPaths: ['/*'],
     });
+
   }
 }

@@ -6,9 +6,12 @@
   "license": "private",
   "private": true,
   "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.272.0",
+    "ailog-common": "1.0.0",
     "aws-lambda": "^1.0.7"
   },
   "devDependencies": {
+    "@types/aws-lambda": "^8.10.110",
     "@types/node": "^18.14.0"
   }
 }
