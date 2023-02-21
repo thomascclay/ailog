@@ -9,22 +9,28 @@ import * as iam from "aws-cdk-lib/aws-iam";
 import * as acm from 'aws-cdk-lib/aws-certificatemanager';
 import {Duration} from "aws-cdk-lib";
 import {CertificateValidation} from "aws-cdk-lib/aws-certificatemanager";
-import { SITE_NAME} from "ailog-common";
-import {AiLogStack} from "./AiLogStack";
+import {AiLogStack, TStackProps} from "./AiLogStack";
 
+type FrontendStackProps = TStackProps & {
+  siteDir: string,
+  domainName: string,
+  subDomainName: string,
+}
 
-export class FrontendStack extends AiLogStack {
-  constructor(scope: cdk.App) {
-    super(scope, 'FrontendStack');
-    const zone = route53.HostedZone.fromLookup(this, 'Zone', {domainName: SITE_NAME[1]});
-    const siteDomain = SITE_NAME.join('.');
+export class FrontendStack extends AiLogStack<FrontendStackProps> {
+  public readonly siteDomain: string
+
+  constructor(scope: cdk.App, props: FrontendStackProps) {
+    super(scope, 'FrontendStack', props);
+    const zone = route53.HostedZone.fromLookup(this, 'Zone', {domainName: props.domainName});
+    this.siteDomain = `${props.subDomainName}.${props.domainName}`;
     const cloudfrontOAI = new cloudfront.OriginAccessIdentity(this, 'cloudfront-OAI', {
       comment: `OAI for ${this.stackId}`
     });
 
     // Create an S3 bucket to store the static assets
     const siteBucket = new s3.Bucket(this, 'AilogUiSiteBucket', {
-      bucketName: SITE_NAME.join('.'),
+      bucketName: this.siteDomain,
       websiteIndexDocument: 'index.html',
       publicReadAccess: true,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
@@ -39,7 +45,7 @@ export class FrontendStack extends AiLogStack {
 
     // TLS certificate
     const certificate = new acm.Certificate(this, 'AiLogSiteCertificate', {
-      domainName: siteDomain,
+      domainName: this.siteDomain,
       validation: CertificateValidation.fromDns(zone),
     });
 
@@ -47,7 +53,7 @@ export class FrontendStack extends AiLogStack {
     const distribution = new cloudfront.Distribution(this, 'AiLogSiteDistribution', {
       certificate: certificate,
       defaultRootObject: "index.html",
-      domainNames: [siteDomain],
+      domainNames: [this.siteDomain],
       minimumProtocolVersion: cloudfront.SecurityPolicyProtocol.TLS_V1_2_2021,
       errorResponses: [
         {
@@ -67,14 +73,14 @@ export class FrontendStack extends AiLogStack {
 
     // Route53 alias record for the CloudFront distribution
     new route53.ARecord(this, 'AilogUiRecord', {
-      recordName: siteDomain,
+      recordName: this.siteDomain,
       target: route53.RecordTarget.fromAlias(new targets.CloudFrontTarget(distribution)),
       zone
     });
 
     // Deploy the static assets to the S3 bucket
     new s3deploy.BucketDeployment(this, 'AilogUiBucketDeployment', {
-      sources: [s3deploy.Source.asset('../../ailog-ui/build')],
+      sources: [s3deploy.Source.asset(props.siteDir)],
       destinationBucket: siteBucket,
       distribution,
       distributionPaths: ['/*'],

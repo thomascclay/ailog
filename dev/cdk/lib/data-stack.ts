@@ -1,19 +1,21 @@
-import * as cdk from 'aws-cdk-lib';
 import { RemovalPolicy} from 'aws-cdk-lib';
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb"
 import {AttributeType, BillingMode} from "aws-cdk-lib/aws-dynamodb"
 import {Construct} from 'constructs';
+import {AiLogStack, TStackProps} from "./AiLogStack";
 import {DYNAMO_TABLE} from "ailog-common";
-import {AiLogStack} from "./AiLogStack";
 
-export class DataStack extends AiLogStack {
+type DataStackProps = TStackProps & {
+  tableName: string
+}
+export class DataStack extends AiLogStack<DataStackProps> {
 
   public dynamoTable: dynamodb.Table
-  constructor(scope: Construct) {
-    super(scope, 'DataStack');
+  constructor(scope: Construct, props: DataStackProps) {
+    super(scope, 'DataStack', props);
 
     this.dynamoTable = new dynamodb.Table(this, 'AiLogTable', {
-      tableName: DYNAMO_TABLE.NAME,
+      tableName: props.tableName,
       billingMode: BillingMode.PAY_PER_REQUEST,
       removalPolicy: RemovalPolicy.RETAIN,
       partitionKey: {

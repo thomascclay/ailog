@@ -1,8 +1,8 @@
 import React, {useState} from "react"
-import {API_URL} from "ailog-common";
+import {API_URL} from "../config";
 
 export function FeedbackForm() {
-  const [toolName, setToolName] = useState('');
+  const [toolName, setToolName] = useState('ChatGPT');
   const [taskDescription, setTaskDescription] = useState('');
   const [timeSaved, setTimeSaved] = useState('');
   const [overallRating, setOverallRating] = useState('');
@@ -30,7 +30,7 @@ export function FeedbackForm() {
     console.log('Task Description:', taskDescription);
     console.log('Time Saved:', timeSaved);
     console.log('Overall Rating:', overallRating);
-    fetch(`https://${API_URL}/feedback`, {
+    fetch(`${API_URL}/feedback`, {
       method: 'POST',
       body: JSON.stringify({
         toolName,
@@ -39,9 +39,7 @@ export function FeedbackForm() {
         overallRating
       })
     }).then(r => {
-      r.body?.getReader().read().then(({value}) => {
-        setResponseText(value?.toString());
-      })
+      r.text().then(setResponseText)
     }).catch(console.error)
   };
 

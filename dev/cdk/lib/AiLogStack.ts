@@ -1,12 +1,14 @@
 import * as cdk from "aws-cdk-lib"
 import {Construct} from "constructs";
 import {ACCOUNT_ID, REGION} from "ailog-common";
-import {Fn} from "aws-cdk-lib";
 
-// export type  TStackProps = Omit<cdk.StackProps, 'env'> & { env: {region: string, account: string} }
-export class AiLogStack extends cdk.Stack {
+export type TStackProps = Omit<cdk.StackProps, 'env'>
+    // & { env: {region: string, account: string} }
+    & { stage: string }
 
-  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+export class AiLogStack<T extends TStackProps> extends cdk.Stack {
+
+  constructor(scope: Construct, id: string, props: T) {
     super(scope, 'AiLog' + id, {
       ...(props ?? {}),
       env: {

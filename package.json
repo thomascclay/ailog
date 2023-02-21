@@ -8,6 +8,8 @@
   "private": true,
   "workspaces": ["ailog-*", "dev/*"],
   "scripts": {
+    "build:ui": "yarn workspace ailog-ui build",
+    "start:ui": "yarn workspace ailog-ui start",
     "deploy": "yarn workspace cdk deploy"
   }
 }

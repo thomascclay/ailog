@@ -1,45 +1,50 @@
 import {Construct} from 'constructs';
-import {API_URL, SERVICE_FN_NAME, SITE_NAME} from "ailog-common";
 import {ARecord, HostedZone, RecordTarget} from "aws-cdk-lib/aws-route53";
-import {AiLogStack} from "./AiLogStack";
+import {AiLogStack, TStackProps} from "./AiLogStack";
 import {ApiGateway} from "aws-cdk-lib/aws-route53-targets";
 import {Certificate, CertificateValidation} from "aws-cdk-lib/aws-certificatemanager";
 import { LambdaRestApi} from "aws-cdk-lib/aws-apigateway";
-import {Function} from "aws-cdk-lib/aws-lambda";
+import {IFunction} from "aws-cdk-lib/aws-lambda";
 
+type ApiStackProps = TStackProps & {
+  domainName: string,
+  apiPrefix: string,
+  proxyFunction: IFunction,
+}
 
-export class ApiStack extends AiLogStack {
+export class ApiStack extends AiLogStack<ApiStackProps> {
 
-  constructor(scope: Construct) {
-    super(scope, 'ApiStack');
+  public apiUrl: string
+  constructor(scope: Construct, props: ApiStackProps) {
+    super(scope, 'ApiStack', props);
+    this.apiUrl = `${props.apiPrefix}.${props.domainName}`
 
-    const proxyFunction = Function.fromFunctionName(this, 'ServiceFn', SERVICE_FN_NAME)
     const zone = HostedZone.fromLookup(this, 'ApiHostedZone', {
-      domainName: SITE_NAME[1]
+      domainName: props.domainName
     })
 
     const certificate = new Certificate(this, 'AiLogApiCertificate', {
-      domainName: API_URL,
+      domainName: this.apiUrl,
       validation: CertificateValidation.fromDns(zone),
     });
 
     const restApi = new LambdaRestApi(this, 'AiLogApiGateway', {
       proxy: true,
-      handler: proxyFunction,
+      handler: props.proxyFunction,
       restApiName: 'AiLog',
       domainName: {
-        domainName: API_URL,
+        domainName: this.apiUrl,
         certificate,
       },
       defaultCorsPreflightOptions: {
-        allowOrigins: [SITE_NAME.join('.')],
+        allowOrigins: [props.domainName],
         allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
       },
     })
 
     new ARecord(this, 'ApiARecord', {
       zone,
-      recordName: API_URL,
+      recordName: this.apiUrl,
       target: RecordTarget.fromAlias(new ApiGateway(restApi))
     })
 
