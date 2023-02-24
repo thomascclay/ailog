@@ -3,15 +3,15 @@ import {ARecord, HostedZone, RecordTarget} from "aws-cdk-lib/aws-route53";
 import {AiLogStack, TStackProps} from "./AiLogStack";
 import {ApiGateway} from "aws-cdk-lib/aws-route53-targets";
 import {Certificate, CertificateValidation} from "aws-cdk-lib/aws-certificatemanager";
-import { LambdaRestApi} from "aws-cdk-lib/aws-apigateway";
+import {AuthorizationType, IdentitySource, LambdaRestApi, RequestAuthorizer} from "aws-cdk-lib/aws-apigateway";
 import {IFunction} from "aws-cdk-lib/aws-lambda";
 
 type ApiStackProps = TStackProps & {
   domainName: string,
   apiPrefix: string,
   proxyFunction: IFunction,
+  authFunction: IFunction,
 }
-
 export class ApiStack extends AiLogStack<ApiStackProps> {
 
   public apiUrl: string
@@ -28,6 +28,11 @@ export class ApiStack extends AiLogStack<ApiStackProps> {
       validation: CertificateValidation.fromDns(zone),
     });
 
+    const authorizer = new RequestAuthorizer(this, 'booksAuthorizer', {
+      handler: props.authFunction,
+      identitySources: [IdentitySource.header('Authorization')]
+    });
+
     const restApi = new LambdaRestApi(this, 'AiLogApiGateway', {
       proxy: true,
       handler: props.proxyFunction,
@@ -40,6 +45,10 @@ export class ApiStack extends AiLogStack<ApiStackProps> {
         allowOrigins: [props.domainName],
         allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
       },
+      defaultMethodOptions: {
+        authorizationType: AuthorizationType.CUSTOM,
+        authorizer,
+      }
     })
 
     new ARecord(this, 'ApiARecord', {
@@ -47,6 +56,8 @@ export class ApiStack extends AiLogStack<ApiStackProps> {
       recordName: this.apiUrl,
       target: RecordTarget.fromAlias(new ApiGateway(restApi))
     })
+
+
 
   }
 }

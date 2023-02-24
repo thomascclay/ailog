@@ -37,7 +37,10 @@ export function FeedbackForm() {
         taskDescription,
         timeSaved,
         overallRating
-      })
+      }),
+      headers: {
+        'Authorization': localStorage.getItem('token')!,
+      }
     }).then(r => {
       r.text().then(setResponseText)
     }).catch(console.error)

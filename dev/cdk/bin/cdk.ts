@@ -23,6 +23,7 @@ const serviceStack = new ServiceStack(app, {
 new ApiStack(app, {
   stage,
   proxyFunction: serviceStack.proxyFunction,
+  authFunction: serviceStack.authFunction,
   apiPrefix: 'api',
   domainName: SITE_NAME[1]
 });

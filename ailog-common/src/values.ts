@@ -21,6 +21,7 @@ export const ARN = {
 }
 export const SITE_NAME = ['ailog', 'tomsplayground.net']
 export const API_URL = `api.${SITE_NAME[1]}`
+export const AUTH_FN_NAME = 'AiLogAuthLambda'
 export const SERVICE_FN_NAME = 'AiLogServiceLambda'
 
 // export enum OUTPUT_KEYS {
