@@ -36,6 +36,11 @@ export const asDynamoItem = (item: Record<string, any>): DynamoItem => Object.ke
     [key]: asDynamoValue(item[key])
   }), {} as DynamoItem);
 
+export const flattenDynamoItem = (item: DynamoItem): Record<string, any> => Object.keys(item).reduce((acc, key) => ({
+  ...acc,
+  [key]: item[key].S || item[key].N || item[key].BOOL || item[key].L || item[key].M
+}), {} as Record<string, any>)
+
 export const DynamoTable = (TableName: string) => ({
   put: async (keys: DynamoKeys, item: object) => ddb.putItem({
     TableName,
@@ -48,8 +53,9 @@ export const DynamoTable = (TableName: string) => ({
       '#hk': DYNAMO_TABLE.HASH_KEY,
       '#sk': DYNAMO_TABLE.SORT_KEY
     }
-  }).then(({Items}) => Items?.map(item => Object.keys(item).reduce((acc, key) => ({
-    ...acc,
-    [key]: item[key].S || item[key].N || item[key].BOOL || item[key].L || item[key].M
-  }), {} as Record<string, any>)) || [])
+  }).then(({Items}) => Items?.map(flattenDynamoItem)),
+  get: async (keys: DynamoKeys) => ddb.getItem({
+    TableName,
+    Key: asDynamoItem(keys),
+  }).then(({Item}) => flattenDynamoItem(Item!))
 })

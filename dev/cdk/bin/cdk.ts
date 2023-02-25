@@ -18,12 +18,12 @@ const dataStack = new DataStack(app, {
 const serviceStack = new ServiceStack(app, {
   stage,
   dynamoTable: dataStack.dynamoTable
-})
+});
 
 new ApiStack(app, {
   stage,
   proxyFunction: serviceStack.proxyFunction,
-  authFunction: serviceStack.authFunction,
+  dynamoTable: dataStack.dynamoTable,
   apiPrefix: 'api',
   domainName: SITE_NAME[1]
 });

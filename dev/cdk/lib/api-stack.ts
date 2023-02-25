@@ -5,19 +5,31 @@ import {ApiGateway} from "aws-cdk-lib/aws-route53-targets";
 import {Certificate, CertificateValidation} from "aws-cdk-lib/aws-certificatemanager";
 import {AuthorizationType, IdentitySource, LambdaRestApi, RequestAuthorizer} from "aws-cdk-lib/aws-apigateway";
 import {IFunction} from "aws-cdk-lib/aws-lambda";
+import {ServiceLambda} from "./ServiceLambda";
+import {AUTH_FN_NAME} from "ailog-common";
+import {ITable} from "aws-cdk-lib/aws-dynamodb";
 
 type ApiStackProps = TStackProps & {
   domainName: string,
   apiPrefix: string,
   proxyFunction: IFunction,
-  authFunction: IFunction,
+  dynamoTable: ITable,
 }
 export class ApiStack extends AiLogStack<ApiStackProps> {
 
-  public apiUrl: string
+  public readonly authFunction: IFunction;
+  public readonly apiUrl: string
   constructor(scope: Construct, props: ApiStackProps) {
     super(scope, 'ApiStack', props);
     this.apiUrl = `${props.apiPrefix}.${props.domainName}`
+    this.authFunction = new ServiceLambda(this, 'AiLogAuthLambda', {
+      functionName: AUTH_FN_NAME,
+      handler: "authHandler",
+      environment: {
+        DYNAMO_TABLE_NAME: props.dynamoTable.tableName
+      },
+    });
+    props.dynamoTable.grantReadData(this.authFunction);
 
     const zone = HostedZone.fromLookup(this, 'ApiHostedZone', {
       domainName: props.domainName
@@ -29,7 +41,7 @@ export class ApiStack extends AiLogStack<ApiStackProps> {
     });
 
     const authorizer = new RequestAuthorizer(this, 'booksAuthorizer', {
-      handler: props.authFunction,
+      handler: this.authFunction,
       identitySources: [IdentitySource.header('Authorization')]
     });
 
@@ -56,8 +68,6 @@ export class ApiStack extends AiLogStack<ApiStackProps> {
       recordName: this.apiUrl,
       target: RecordTarget.fromAlias(new ApiGateway(restApi))
     })
-
-
 
   }
 }
