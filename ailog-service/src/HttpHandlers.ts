@@ -1,51 +1,83 @@
 import {inspect} from "util";
 import {APIGatewayProxyEvent, APIGatewayProxyHandler} from "aws-lambda";
-import {putFeedback} from "./FeedbackService";
-import {login} from "./Authorizer";
+import * as fbservice from "./FeedbackService";
+import {login, SITE_NAME} from "ailog-common";
 
 type HttpEventHandler = (event: APIGatewayProxyEvent) => Promise<any>;
 type HttpEventHandlers = {
   [key: string]: HttpEventHandler
 }
 
-const postFeedback: HttpEventHandler = async (event) => {
+const bodyAsString = (body: any): string => {
+  if (typeof body === 'string') {
+    return body;
+  } else {
+    return JSON.stringify(body);
+  }
+}
+
+const Responses = {
+  OK: (body: any = "OK") => {
+    return {
+      statusCode: 200,
+      headers: {
+        'Access-Control-Allow-Origin': `https://${SITE_NAME.join('.')}`,
+      },
+      body: bodyAsString(body)
+    }
+  },
+  BAD_REQUEST: (body: any = "Bad Request") => {
+    return {
+      statusCode: 400,
+      headers: {
+        'Access-Control-Allow-Origin': `https://${SITE_NAME.join('.')}`,
+      },
+      body: bodyAsString(body)
+    }
+  },
+  NOT_FOUND: (body: any = "Not Found") => {
+    return {
+      statusCode: 404,
+      headers: {
+        'Access-Control-Allow-Origin': `https://${SITE_NAME.join('.')}`,
+      },
+      body: bodyAsString(body)
+    }
+  },
+  ERROR: (body: any = "Error") => {
+    return {
+      statusCode: 500,
+      headers: {
+        'Access-Control-Allow-Origin': `https://${SITE_NAME.join('.')}`,
+      },
+      body: bodyAsString(body)
+    }
+  }
+}
+
+const putFeedback: HttpEventHandler = async (event) => {
   console.log('handlePost event', inspect(event));
   const body = event.body ? JSON.parse(event.body) : null;
   if (!body) {
-    return {
-      statusCode: 400,
-      body: 'Bad Request'
-    }
+    return Responses.BAD_REQUEST('Bad Request, no body')
   }
-  return await putFeedback(body)
-      .then(_ => ({
-        statusCode: 200,
-        body: 'OK'
-      }))
+  return await fbservice.putFeedback(body)
+      .then(_ => Responses.OK)
       .catch(err => {
         console.error('Error', err);
-        return {
-          statusCode: 500,
-          body: inspect(err)
-        }
+        return Responses.ERROR(err)
       })
 };
 
 const postLogin: HttpEventHandler = async (event) => {
   const body = event.body ? JSON.parse(event.body) : null;
   if (!body) {
-    return {
-      statusCode: 400,
-      body: 'Bad Request, no body'
-    }
+    return Responses.BAD_REQUEST('Bad Request, no body')
   }
   if (body.username && body.password) {
     const token = await login(body.username, body.password);
     if (token) {
-      return {
-        statusCode: 200,
-        body: JSON.stringify({token, user: {username: body.username}})
-      }
+      return Responses.OK({token, username: body.username})
     } else {
       return {
         statusCode: 401,
@@ -53,18 +85,14 @@ const postLogin: HttpEventHandler = async (event) => {
       }
     }
   } else {
-    return {
-      statusCode: 400,
-      body: 'Bad Request, no username or password'
-    }
+    return Responses.BAD_REQUEST('Bad Request, no username or password')
   }
 }
 
 const httpEventHandlers: HttpEventHandlers = {
-  'POST /feedback': postFeedback,
+  'PUT /feedback': putFeedback,
   'POST /login': postLogin
 };
-
 
 export const rootHandler: APIGatewayProxyHandler = async (event, context) => {
   console.debug('event', inspect(event));
@@ -75,9 +103,6 @@ export const rootHandler: APIGatewayProxyHandler = async (event, context) => {
   } else {
     let msg = `Cannot ${event.httpMethod} ${event.path}`;
     console.error(msg)
-    return {
-      statusCode: 404,
-      body: msg
-    }
+    return Responses.NOT_FOUND(msg)
   }
 }

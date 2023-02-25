@@ -1,5 +1,6 @@
 import React, {useState} from "react"
-import {API_URL} from "../config";
+import {useApi} from "../hooks/hooks";
+import {inspect} from "util";
 
 export function FeedbackForm() {
   const [toolName, setToolName] = useState('ChatGPT');
@@ -7,6 +8,7 @@ export function FeedbackForm() {
   const [timeSaved, setTimeSaved] = useState('');
   const [overallRating, setOverallRating] = useState('');
   const [responseText, setResponseText] = useState<string | null | undefined>(null);
+  const api = useApi();
 
   const handleToolNameChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     setToolName(event.target.value);
@@ -30,20 +32,12 @@ export function FeedbackForm() {
     console.log('Task Description:', taskDescription);
     console.log('Time Saved:', timeSaved);
     console.log('Overall Rating:', overallRating);
-    fetch(`${API_URL}/feedback`, {
-      method: 'POST',
-      body: JSON.stringify({
-        toolName,
-        taskDescription,
-        timeSaved,
-        overallRating
-      }),
-      headers: {
-        'Authorization': localStorage.getItem('token')!,
-      }
-    }).then(r => {
-      r.text().then(setResponseText)
-    }).catch(console.error)
+    api.Feedback.put({id: Date.now().toString(), toolName, taskDescription, timeSaved, overallRating})
+        .then((response) => {
+          console.log(response);
+          setResponseText(inspect(response.data));
+        })
+        .catch(console.error)
   };
 
   return (

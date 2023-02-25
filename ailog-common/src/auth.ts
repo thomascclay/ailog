@@ -1,11 +1,10 @@
 import {APIGatewayAuthorizerHandler, APIGatewayAuthorizerResult, APIGatewayRequestAuthorizerEvent} from "aws-lambda";
-import {DynamoTable} from "./dynamo";
-import {DYNAMO_TABLE} from "ailog-common";
+import {DynamoTable, DYNAMO_TABLE} from "ailog-common";
 import * as crypto from "crypto";
 
 const response = (effect: 'Deny' | 'Allow') => (event: APIGatewayRequestAuthorizerEvent): APIGatewayAuthorizerResult => {
   return {
-    principalId: event.requestContext.identity.user ?? 'user',
+    principalId: event.headers?.username ?? 'user',
     policyDocument: {
       Version: '2012-10-17',
       Statement: [
@@ -22,12 +21,14 @@ const response = (effect: 'Deny' | 'Allow') => (event: APIGatewayRequestAuthoriz
 const table = DynamoTable(DYNAMO_TABLE.NAME);
 
 const tokenValid = async (event: APIGatewayRequestAuthorizerEvent): Promise<boolean> => {
-  const authHeader = event.headers?.Authorization;
+  const authHeader = event.headers?.authorization;
   if (!authHeader) {
+    console.error('no "authorization" header');
     return false;
   }
-  const username = event.headers?.Username;
+  const username = event.headers?.username;
   if (!username) {
+    console.error('no "username" header');
     return false;
   }
   const token = await table.get({
@@ -40,10 +41,13 @@ export const authorizer: APIGatewayAuthorizerHandler = async (event, context) =>
   console.log('event', JSON.stringify(event));
   console.log('context', JSON.stringify(context));
   const requestEvent = event as APIGatewayRequestAuthorizerEvent;
-  if (await tokenValid(requestEvent)) {
+  if (requestEvent.path === '/login') {
     return response('Allow')(requestEvent)
   }
-  return response('Deny')(requestEvent)
+  else if (await tokenValid(requestEvent)) {
+    return response('Allow')(requestEvent)
+  }
+  else return response('Deny')(requestEvent)
 }
 
 const hashPassword = (password: string): string => crypto.createHash('sha256').update(password).digest('hex');

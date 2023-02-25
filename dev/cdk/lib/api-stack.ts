@@ -3,7 +3,12 @@ import {ARecord, HostedZone, RecordTarget} from "aws-cdk-lib/aws-route53";
 import {AiLogStack, TStackProps} from "./AiLogStack";
 import {ApiGateway} from "aws-cdk-lib/aws-route53-targets";
 import {Certificate, CertificateValidation} from "aws-cdk-lib/aws-certificatemanager";
-import {AuthorizationType, IdentitySource, LambdaRestApi, RequestAuthorizer} from "aws-cdk-lib/aws-apigateway";
+import {
+  AuthorizationType,
+  IdentitySource,
+  LambdaRestApi,
+  RequestAuthorizer
+} from "aws-cdk-lib/aws-apigateway";
 import {IFunction} from "aws-cdk-lib/aws-lambda";
 import {ServiceLambda} from "./ServiceLambda";
 import {AUTH_FN_NAME} from "ailog-common";
@@ -12,6 +17,7 @@ import {ITable} from "aws-cdk-lib/aws-dynamodb";
 type ApiStackProps = TStackProps & {
   domainName: string,
   apiPrefix: string,
+  sitePrefix: string,
   proxyFunction: IFunction,
   dynamoTable: ITable,
 }
@@ -24,6 +30,7 @@ export class ApiStack extends AiLogStack<ApiStackProps> {
     this.apiUrl = `${props.apiPrefix}.${props.domainName}`
     this.authFunction = new ServiceLambda(this, 'AiLogAuthLambda', {
       functionName: AUTH_FN_NAME,
+      package: 'ailog-api',
       handler: "authHandler",
       environment: {
         DYNAMO_TABLE_NAME: props.dynamoTable.tableName
@@ -40,7 +47,7 @@ export class ApiStack extends AiLogStack<ApiStackProps> {
       validation: CertificateValidation.fromDns(zone),
     });
 
-    const authorizer = new RequestAuthorizer(this, 'booksAuthorizer', {
+    const authorizer = new RequestAuthorizer(this, 'Authorizer', {
       handler: this.authFunction,
       identitySources: [IdentitySource.header('Authorization')]
     });
@@ -54,8 +61,9 @@ export class ApiStack extends AiLogStack<ApiStackProps> {
         certificate,
       },
       defaultCorsPreflightOptions: {
-        allowOrigins: [props.domainName],
+        allowOrigins: [`https://${props.sitePrefix}.${props.domainName}`],
         allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+        allowHeaders: ['Authorization', 'Username', 'Content-Type']
       },
       defaultMethodOptions: {
         authorizationType: AuthorizationType.CUSTOM,

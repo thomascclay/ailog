@@ -1,0 +1,12 @@
+{
+  "name": "ailog-api",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "author": "Thomas Clay",
+  "license": "private",
+  "private": true,
+  "dependencies": {
+    "@types/node": "^18.14.1",
+    "aws-lambda": "^1.0.7"
+  }
+}

@@ -10,16 +10,18 @@ type ServiceStackProps = TStackProps & {
 }
 export class ServiceStack extends AiLogStack<ServiceStackProps> {
   public readonly proxyFunction: IFunction;
-  public readonly authFunction: IFunction;
   constructor(scope: Construct, props: ServiceStackProps) {
     super(scope, 'ServiceStack', props);
 
     this.proxyFunction = new ServiceLambda(this, 'AiLogServiceLambda', {
       functionName: SERVICE_FN_NAME,
       handler: "httpHandler",
+      package: 'ailog-service',
       environment: {
         DYNAMO_TABLE_NAME: props.dynamoTable.tableName
       },
     })
+
+    props.dynamoTable.grantReadWriteData(this.proxyFunction);
   }
 }

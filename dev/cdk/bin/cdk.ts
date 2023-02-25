@@ -25,6 +25,7 @@ new ApiStack(app, {
   proxyFunction: serviceStack.proxyFunction,
   dynamoTable: dataStack.dynamoTable,
   apiPrefix: 'api',
+  sitePrefix: 'ailog',
   domainName: SITE_NAME[1]
 });
 

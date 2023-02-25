@@ -1,5 +1,5 @@
 {
-  "name": "ailog-api",
+  "name": "ailog-service",
   "version": "1.0.0",
   "main": "index.ts",
   "author": "Thomas Clay",

@@ -1,9 +1,8 @@
-import assert = require("assert");
 
 export const REGION = process.env.DEFAULT_CDK_REGION ?? process.env.AWS_REGION;
-assert(REGION, "REGION must be set");
+console.assert(REGION, "REGION must be set");
 export const ACCOUNT_ID = process.env.DEFAULT_CDK_ACCOUNT
-// assert(ACCOUNT_ID, "ACCOUNT must be set");
+console.assert(ACCOUNT_ID, "ACCOUNT must be set");
 
 export const DYNAMO_TABLE = {
   NAME: 'AiLog',
