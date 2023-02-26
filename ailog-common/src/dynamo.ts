@@ -45,7 +45,8 @@ export const DynamoTable = (TableName: string) => ({
   put: async (keys: DynamoKeys, item: object) => {
     const Item = asDynamoItem({...keys, ...item});
     console.debug('DynamoTable.put', {TableName, Item});
-    return ddb.putItem({TableName, Item})
+    const result = await ddb.putItem({TableName, Item})
+    console.debug('DynamoTable.put response status code', result.$metadata.httpStatusCode);
   },
 
   query: async (keys: DynamoKeys): Promise<Array<Record<string, any>>> => {

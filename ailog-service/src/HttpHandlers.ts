@@ -1,9 +1,9 @@
 import {inspect} from "util";
-import {APIGatewayProxyEvent, APIGatewayProxyHandler} from "aws-lambda";
+import {APIGatewayProxyEvent, APIGatewayProxyHandler, APIGatewayProxyResult} from "aws-lambda";
 import * as fbservice from "./FeedbackService";
 import {login, SITE_NAME} from "ailog-common";
 
-type HttpEventHandler = (event: APIGatewayProxyEvent) => Promise<any>;
+type HttpEventHandler = (event: APIGatewayProxyEvent) => Promise<APIGatewayProxyResult>;
 type HttpEventHandlers = {
   [key: string]: HttpEventHandler
 }
@@ -16,7 +16,7 @@ const bodyAsString = (body: any): string => {
   }
 }
 
-const Responses = {
+const Responses: Record<string, (body?: any) => APIGatewayProxyResult> = {
   OK: (body: any = "OK") => {
     return {
       statusCode: 200,
@@ -58,11 +58,15 @@ const Responses = {
 const putFeedback: HttpEventHandler = async (event) => {
   console.log('handlePost event', inspect(event));
   const body = event.body ? JSON.parse(event.body) : null;
+  const username = event.headers.username;
   if (!body) {
     return Responses.BAD_REQUEST('Bad Request, no body')
   }
-  return await fbservice.putFeedback(body)
-      .then(_ => Responses.OK)
+  if (!username) {
+    return Responses.BAD_REQUEST('Bad Request, no username header')
+  }
+  return await fbservice.putFeedback(username, body)
+      .then(_ => Responses.OK())
       .catch(err => {
         console.error('Error', err);
         return Responses.ERROR(err)
@@ -99,7 +103,9 @@ export const rootHandler: APIGatewayProxyHandler = async (event, context) => {
   console.log('event.body', inspect(event.body));
   const handler = httpEventHandlers[`${event.httpMethod} ${event.path.toLowerCase()}`];
   if (handler) {
-    return await handler(event);
+    const result = await handler(event);
+    console.debug('result', inspect(result));
+    return result;
   } else {
     let msg = `Cannot ${event.httpMethod} ${event.path}`;
     console.error(msg)
